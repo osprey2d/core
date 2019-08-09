@@ -63,7 +63,11 @@ class Osprey {
     this.elementStack = fn(this.elementStack, key, mid)
     return this.elementStack
   }
-  moveElements(indexList: number[], { x, y }: any): any[] {
+  moveElements(
+    indexList: number[],
+    { x, y }: any,
+    elementOffset: any[]
+  ): any[] {
     if (indexList.length === 1) {
       // 单个元素的移动，不需要取相对偏移量
       const [index] = indexList
@@ -72,6 +76,18 @@ class Osprey {
       }
       return this.elementStack
     }
+    // 批量移动元素
+    indexList.forEach((index, i) => {
+      const data = this.elementStack[index]
+      const offset = elementOffset[i]
+
+      if (data._type === 0 && offset.type === 0) {
+        // 移动点元素
+        this.elementStack[index]._x = offset.ox + x
+        this.elementStack[index]._y = offset.oy + y
+      }
+    })
+    return this.elementStack
   }
   countSelectRect(position: number[]): number[] {
     const [x1, y1, x2, y2] = position
@@ -101,7 +117,39 @@ class Osprey {
     this.elementStack = fn(this.elementStack, arr)
     return this.elementStack
   }
+  static countSelectRange(arr: number[]): number[] {
+    // 框选时的计算
+    const [x1, y1, x2, y2] = arr
+    return !x1 || !y1 || !x2 || !y2
+      ? []
+      : [
+          x1 < x2 ? x1 : x2,
+          y1 < y2 ? y1 : y2,
+          x2 > x1 ? x2 : x1,
+          y2 > y1 ? y2 : y1
+        ]
+  }
+  static countElementOffSet(
+    arr: any[],
+    activeIndex: number[],
+    { x, y }: any
+  ): any[] {
+    // 计算每一个元素的偏移量
+    return activeIndex.map(index => {
+      const data = arr[index]
+      if (data._type === 0) {
+        return {
+          index,
+          type: data._type,
+          ox: data._x - x,
+          oy: data._y - y
+        }
+      }
+      return {}
+    })
+  }
   static isOverOtherPoint(arr: any[], { x, y }: any): number | null {
+    // 判断当前坐标是否落在其他元素上
     const _arr = arr.filter(
       item =>
         item._type === 0 &&
