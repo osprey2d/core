@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "./dist",
+    "noImplicitAny": true, //强类型检查
+    "outDir": "./dist/",
+    "module": "esnext",
+    "target": "es5",
+    "sourceMap": true, //代码映射
+    "lib": ["dom", "es2015", "es2016", "es2017", "es2018"]
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

@@ -1,0 +1,8 @@
+import Element from "../src/index";
+
+test("测试修改点", () => {
+  const point = new Element().createPoint({ x: 10, y: 10 });
+  const mid = point.mid
+  const result = { x: 20, y: 20, mid: mid };
+  expect(point.changePoint({ x: 20, y: 20 })).toEqual(result);
+});

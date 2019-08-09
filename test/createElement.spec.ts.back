@@ -1,0 +1,29 @@
+import Element from "../src/index";
+
+test("测试创建点", () => {
+  const result = { x: 10, y: 10 };
+  expect(new Element().createPoint({ x: 10, y: 10 })).toMatchObject(result);
+});
+
+test("测试创建线", () => {
+  const result = { ctrlPoints: [1, 2, 3, 4, 2, 3, 2, 3] };
+  expect(new Element().createLine({ x: 1, y: 2 }, { x: 3, y: 4 })).toMatchObject(
+    result
+  );
+});
+
+test("测试创建面", () => {
+  const result = {
+    ctrlPoints: [
+      { x: 30, y: 80 },
+      { x: 50, y: 80 },
+      { x: 70, y: 80 },
+      { x: 30, y: 60 },
+      { x: 70, y: 60 },
+      { x: 30, y: 40 },
+      { x: 50, y: 40 },
+      { x: 70, y: 40 }
+    ]
+  };
+  expect(new Element().createArea([50, 60])).toMatchObject(result);
+});
