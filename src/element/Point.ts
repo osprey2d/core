@@ -36,7 +36,7 @@ class Point {
   }
   /**
    *
-   * @param param0 数学坐标
+   * @param { _x, _y } 数学坐标
    * @param isResidual 是否启用吸附
    */
   changeElement({ _x, _y }: any, isResidual: boolean = false): void {

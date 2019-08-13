@@ -1,5 +1,5 @@
 import Point from './element/Point'
-import { stackControl, handleActive } from './utils/index'
+import { stackControl, handleActive, resetElementIndex } from './utils/index'
 
 class Osprey {
   elementHooks: any = {}
@@ -63,6 +63,13 @@ class Osprey {
     this.elementStack = fn(this.elementStack, key, mid)
     return this.elementStack
   }
+  deleteElement(list: number[]): any[] {
+    const arr = this.elementStack.filter(
+      element => !list.includes(element._index)
+    )
+    this.elementStack = resetElementIndex(arr)
+    return this.elementStack
+  }
   moveElements(
     indexList: number[],
     { x, y }: any,
@@ -82,11 +89,19 @@ class Osprey {
       const offset = elementOffset[i]
 
       if (data._type === 0 && offset.type === 0) {
-        // 移动点元素
-        this.elementStack[index]._x = offset.ox + x
-        this.elementStack[index]._y = offset.oy + y
+        // 移动点元素，修改元素的数学属性
+        this.elementStack[index].changeElement({
+          _x: offset.ox + x,
+          _y: offset.oy + y
+        })
       }
     })
+    return this.elementStack
+  }
+  handleFixElementAttribute(index: number, data: any): any[] {
+    for (const key in data) {
+      this.elementStack[index][key] = data[key]
+    }
     return this.elementStack
   }
   countSelectRect(position: number[]): number[] {
