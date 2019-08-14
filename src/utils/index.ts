@@ -22,8 +22,10 @@ export const stackControl = (arr: any[], data: any): any => {
       index = 0
       break
     case 1:
-      // const _arr = arr.filter(item => item._type >= 1)
-      // arr.splice(_arr[0].length - 1, 0, data)
+      const _arr = arr.filter(item => item._type > 1)
+      const len = _arr.length ? _arr.length : 0
+      arr.splice(len, 0, data)
+      index = len
       break
     case 0:
       arr.push(data)
@@ -33,7 +35,7 @@ export const stackControl = (arr: any[], data: any): any => {
       break
   }
   // 重置所有的索引再传出去
-  return [resetElementIndex(arr), data.mid, index]
+  return [resetElementIndex(arr), data._mid, index]
 }
 
 /**

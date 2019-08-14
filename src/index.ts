@@ -1,10 +1,14 @@
 import Point from './element/Point'
+import Line from './element/Line'
 import { stackControl, handleActive, resetElementIndex } from './utils/index'
 
 class Osprey {
   elementHooks: any = {}
   elementStack: any[] = []
   pointIndex: number = 0
+  lineIndex: number = 0
+  $nearPoint: any = null
+  $index: number = -1
   /**
    * 安装插件的方法
    * @param config
@@ -35,8 +39,22 @@ class Osprey {
       }
     }
     const proxyPoint = new Proxy(point, handles)
-    const [arr, mid] = stackControl(this.elementStack, proxyPoint)
+    const [arr, mid, index] = stackControl(this.elementStack, proxyPoint)
+    this.$nearPoint = arr[index]
     this.elementStack = arr
+    this.$index = index
+    return this.elementStack
+  }
+  createLine({ start, end, _startMid, _endMid, ...config }: any): any[] {
+    const line = new Line({ start, end, _startMid, _endMid })
+    const [arr, mid, index] = stackControl(this.elementStack, line)
+    this.elementStack = arr
+    this.$index = index
+    return this.elementStack
+  }
+  changeControlPointOfLine(index: number, type: number, config: any): any[] {
+    // 修改线元素的控制点
+    this.elementStack[index].changeControlPoint({ type, ev: config })
     return this.elementStack
   }
 
@@ -64,11 +82,36 @@ class Osprey {
     return this.elementStack
   }
   deleteElement(list: number[]): any[] {
-    const arr = this.elementStack.filter(
-      element => !list.includes(element._index)
-    )
+    let deleteArr: any[] = []
+    const arr = this.elementStack.concat()
+    list.forEach(item => {
+      if (arr[item]._type === 0) {
+        const pointMid = arr[item]._mid
+        arr.forEach(ctx => {
+          if (
+            ctx._type === 1 &&
+            (ctx._startMid === pointMid || ctx._endMid === pointMid)
+          ) {
+            deleteArr.push(ctx._index)
+          }
+        })
+      }
+      deleteArr.push(item)
+    })
+    const _deleteArr = deleteArr.sort((a, b) => b - a)
+    _deleteArr.forEach(item => {
+      arr.splice(item, 1)
+    })
     this.elementStack = resetElementIndex(arr)
     return this.elementStack
+  }
+  resetNearPoint(mid?: string): void {
+    if (!mid) {
+      this.$nearPoint = null
+      return
+    }
+    const [element] = this.elementStack.filter(item => item._mid === mid)
+    this.$nearPoint = element
   }
   moveElements(
     indexList: number[],
@@ -78,8 +121,10 @@ class Osprey {
     if (indexList.length === 1) {
       // 单个元素的移动，不需要取相对偏移量
       const [index] = indexList
+      const data = this.elementStack[index]
       if (this.elementStack[index]._type === 0) {
         this.changeElement({ _x: x, _y: y }, index)
+        this._responsiveFixLine(data, { x, y })
       }
       return this.elementStack
     }
@@ -90,13 +135,40 @@ class Osprey {
 
       if (data._type === 0 && offset.type === 0) {
         // 移动点元素，修改元素的数学属性
+        const nx = offset.ox + x
+        const ny = offset.oy + y
         this.elementStack[index].changeElement({
           _x: offset.ox + x,
           _y: offset.oy + y
         })
+        // 移动关联的线元素
+        // 判断是否有线段与该点关联，如果有关联，则调用实例方法修改
+        this._responsiveFixLine(data, { x: nx, y: ny })
       }
     })
     return this.elementStack
+  }
+  _responsiveFixLine(data: any, { x, y }: any): void {
+    this.elementStack.forEach(item => {
+      if (item._type === 1 && item._startMid === data._mid) {
+        item.changeBoundaryPoint({
+          type: 'start',
+          ev: {
+            x,
+            y
+          }
+        })
+      }
+      if (item._type === 1 && item._endMid === data._mid) {
+        item.changeBoundaryPoint({
+          type: 'end',
+          ev: {
+            x,
+            y
+          }
+        })
+      }
+    })
   }
   handleFixElementAttribute(index: number, data: any): any[] {
     for (const key in data) {
@@ -130,6 +202,10 @@ class Osprey {
   handleCountLayout(arr: number[], handle: string): any[] {
     const fn = handleActive[handle]
     this.elementStack = fn(this.elementStack, arr)
+    arr.forEach(index => {
+      const data = this.elementStack[index]
+      this._responsiveFixLine(data, { x: data._x, y: data._y })
+    })
     return this.elementStack
   }
   static countSelectRange(arr: number[]): number[] {
@@ -168,10 +244,10 @@ class Osprey {
     const _arr = arr.filter(
       item =>
         item._type === 0 &&
-        Math.abs(item._x - x) <= item._radius &&
-        Math.abs(item._y - y) <= item._radius
+        Math.abs(item._x - x) <= item._r &&
+        Math.abs(item._y - y) <= item._r
     )
-    return _arr.length ? _arr[_arr.length - 1].index : null
+    return _arr.length ? _arr[_arr.length - 1]._index : null
   }
   static transCoordinate(event: any, elm: any): any {
     if (!event.target && !elm) {
