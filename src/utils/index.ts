@@ -17,7 +17,7 @@ export const createMid = (): string => cuid()
 export const stackControl = (arr: any[], data: any): any => {
   let index: number
   switch (data._type) {
-    case 10:
+    case 9:
       arr.unshift(data)
       index = 0
       break

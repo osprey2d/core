@@ -1,5 +1,6 @@
 import Point from './element/Point'
 import Line from './element/Line'
+import Rect from './element/Rect'
 import { stackControl, handleActive, resetElementIndex } from './utils/index'
 
 class Osprey {
@@ -48,6 +49,13 @@ class Osprey {
   createLine({ start, end, _startMid, _endMid, ...config }: any): any[] {
     const line = new Line({ start, end, _startMid, _endMid })
     const [arr, mid, index] = stackControl(this.elementStack, line)
+    this.elementStack = arr
+    this.$index = index
+    return this.elementStack
+  }
+  createRect([start, end]: any[]): any[] {
+    const rect = new Rect({ start, end })
+    const [arr, mid, index] = stackControl(this.elementStack, rect)
     this.elementStack = arr
     this.$index = index
     return this.elementStack
