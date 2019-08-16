@@ -1,15 +1,26 @@
+const { cloneDeep } = require('lodash')
+const Undoo = require('undoo')
 import Point from './element/Point'
 import Line from './element/Line'
 import Rect from './element/Rect'
 import { stackControl, handleActive, resetElementIndex } from './utils/index'
 
+const history = new Undoo({ maxLength: 100 })
 class Osprey {
-  elementHooks: any = {}
-  elementStack: any[] = []
-  pointIndex: number = 0
-  lineIndex: number = 0
-  $nearPoint: any = null
-  $index: number = -1
+  elementHooks: any
+  elementStack: any[]
+  pointIndex: number
+  lineIndex: number
+  $nearPoint: any
+  $index: number
+  constructor(init: any) {
+    this.elementHooks = {}
+    this.elementStack = []
+    this.pointIndex = 0
+    this.lineIndex = 0
+    this.$nearPoint = null
+    this.$index = -1
+  }
   /**
    * 安装插件的方法
    * @param config
@@ -60,6 +71,14 @@ class Osprey {
     this.$index = index
     return this.elementStack
   }
+
+  changeRectSize(activeIndex: number[], i: number, config: any): any[] {
+    activeIndex.forEach(index => {
+      this.elementStack[index].changeControlPoint({ n: i, ev: config })
+    })
+    return this.elementStack
+  }
+
   changeControlPointOfLine(index: number, type: number, config: any): any[] {
     // 修改线元素的控制点
     this.elementStack[index].changeControlPoint({ type, ev: config })
@@ -133,6 +152,15 @@ class Osprey {
       if (this.elementStack[index]._type === 0) {
         this.changeElement({ _x: x, _y: y }, index)
         this._responsiveFixLine(data, { x, y })
+      }
+      if (this.elementStack[index]._type === 9) {
+        // move rect
+        const offset = elementOffset[0]
+        this.elementStack[index].changePosition({
+          ev: { x, y },
+          rx: offset.ox,
+          ry: offset.oy
+        })
       }
       return this.elementStack
     }
@@ -216,11 +244,41 @@ class Osprey {
     })
     return this.elementStack
   }
+  saveVersion() {
+    const data = {
+      elementHooks: cloneDeep(this.elementHooks),
+      elementStack: cloneDeep(this.elementStack),
+      pointIndex: this.pointIndex,
+      lineIndex: this.lineIndex,
+      $nearPoint: this.$nearPoint,
+      $index: this.$index
+    }
+    history.save(data)
+  }
+  clearCache() {
+    history.clear()
+  }
+  undo() {
+    const data = cloneDeep(history.undo().current())
+    this.$nearPoint = data.$nearPoint
+    this.pointIndex = data.pointIndex
+    this.lineIndex = data.lineIndex
+    this.elementStack = data.elementStack
+    return this.elementStack
+  }
+  redo() {
+    const data = cloneDeep(history.redo().current())
+    this.$nearPoint = data.$nearPoint
+    this.pointIndex = data.pointIndex
+    this.lineIndex = data.lineIndex
+    this.elementStack = data.elementStack
+    return this.elementStack
+  }
   static countSelectRange(arr: number[]): number[] {
     // 框选时的计算
     const [x1, y1, x2, y2] = arr
     return !x1 || !y1 || !x2 || !y2
-      ? []
+      ? [0, 0, 0, 0]
       : [
           x1 < x2 ? x1 : x2,
           y1 < y2 ? y1 : y2,
@@ -242,6 +300,14 @@ class Osprey {
           type: data._type,
           ox: data._x - x,
           oy: data._y - y
+        }
+      }
+      if (data._type === 9) {
+        return {
+          index,
+          type: data._type,
+          ox: x - data._ctrls[0].x,
+          oy: y - data._ctrls[0].y
         }
       }
       return {}
